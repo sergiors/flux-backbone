@@ -10,85 +10,20 @@
  */
 
 var AppDispatcher = require('../dispatcher/AppDispatcher');
-var EventEmitter = require('events').EventEmitter;
-var TodoConstants = require('../constants/TodoConstants');
-var assign = require('object-assign');
+var _ = require('lodash');
+var Backbone = require('backbone');
+var Todos = new (Backbone.Collection.extend({}));
 
-var CHANGE_EVENT = 'change';
+var CHANGE_EVENT = 'all';
 
-var _todos = {};
-
-/**
- * Create a TODO item.
- * @param  {string} text The content of the TODO
- */
-function create(text) {
-  // Hand waving here -- not showing how this interacts with XHR or persistent
-  // server-side storage.
-  // Using the current timestamp + random number in place of a real id.
-  var id = (+new Date() + Math.floor(Math.random() * 999999)).toString(36);
-  _todos[id] = {
-    id: id,
-    complete: false,
-    text: text
-  };
-}
-
-/**
- * Update a TODO item.
- * @param  {string} id
- * @param {object} updates An object literal containing only the data to be
- *     updated.
- */
-function update(id, updates) {
-  _todos[id] = assign({}, _todos[id], updates);
-}
-
-/**
- * Update all of the TODO items with the same object.
- *     the data to be updated.  Used to mark all TODOs as completed.
- * @param  {object} updates An object literal containing only the data to be
- *     updated.
-
- */
-function updateAll(updates) {
-  for (var id in _todos) {
-    update(id, updates);
-  }
-}
-
-/**
- * Delete a TODO item.
- * @param  {string} id
- */
-function destroy(id) {
-  delete _todos[id];
-}
-
-/**
- * Delete all the completed TODO items.
- */
-function destroyCompleted() {
-  for (var id in _todos) {
-    if (_todos[id].complete) {
-      destroy(id);
-    }
-  }
-}
-
-var TodoStore = assign({}, EventEmitter.prototype, {
+var TodoStore = _.extend(Todos, {
 
   /**
    * Tests whether all the remaining TODO items are marked as completed.
    * @return {boolean}
    */
   areAllComplete: function() {
-    for (var id in _todos) {
-      if (!_todos[id].complete) {
-        return false;
-      }
-    }
-    return true;
+    return Todos.where({complete: true}).length || false;
   },
 
   /**
@@ -96,11 +31,13 @@ var TodoStore = assign({}, EventEmitter.prototype, {
    * @return {object}
    */
   getAll: function() {
-    return _todos;
+    return Todos.toJSON();
   },
 
-  emitChange: function() {
-    this.emit(CHANGE_EVENT);
+  updateAll: function(updates) {
+    this.forEach(function(todo) {
+      todo.set(updates);
+    });
   },
 
   /**
@@ -114,63 +51,58 @@ var TodoStore = assign({}, EventEmitter.prototype, {
    * @param {function} callback
    */
   removeChangeListener: function(callback) {
-    this.removeListener(CHANGE_EVENT, callback);
+    this.off(CHANGE_EVENT, callback);
   }
 });
 
-// Register callback to handle all updates
-AppDispatcher.register(function(action) {
-  var text;
+AppDispatcher.on({
+  TODO_CREATE: function(action) {
+    var text = action.text.trim();
 
-  switch(action.actionType) {
-    case TodoConstants.TODO_CREATE:
-      text = action.text.trim();
-      if (text !== '') {
-        create(text);
-        TodoStore.emitChange();
-      }
-      break;
+    if (text !== '') {
+      var id = (+new Date() + Math.floor(Math.random() * 999999)).toString(36);
 
-    case TodoConstants.TODO_TOGGLE_COMPLETE_ALL:
-      if (TodoStore.areAllComplete()) {
-        updateAll({complete: false});
-      } else {
-        updateAll({complete: true});
-      }
-      TodoStore.emitChange();
-      break;
+      TodoStore.add({
+        id: id,
+        complete: false,
+        text: text
+      });
+    }
+  },
 
-    case TodoConstants.TODO_UNDO_COMPLETE:
-      update(action.id, {complete: false});
-      TodoStore.emitChange();
-      break;
+  TODO_TOGGLE_COMPLETE_ALL: function() {
+    var updates = {complete: true};
 
-    case TodoConstants.TODO_COMPLETE:
-      update(action.id, {complete: true});
-      TodoStore.emitChange();
-      break;
+    if (TodoStore.areAllComplete()) {
+      updates = {complete: false};
+    }
 
-    case TodoConstants.TODO_UPDATE_TEXT:
-      text = action.text.trim();
-      if (text !== '') {
-        update(action.id, {text: text});
-        TodoStore.emitChange();
-      }
-      break;
+    TodoStore.updateAll(updates);
+  },
 
-    case TodoConstants.TODO_DESTROY:
-      destroy(action.id);
-      TodoStore.emitChange();
-      break;
+  TODO_UNDO_COMPLETE: function(action) {
+    TodoStore.get(action.id).set({complete: false});
+  },
 
-    case TodoConstants.TODO_DESTROY_COMPLETED:
-      destroyCompleted();
-      TodoStore.emitChange();
-      break;
+  TODO_COMPLETE: function(action) {
+    TodoStore.get(action.id).set({complete: true});
+  },
 
-    default:
-      // no op
+  TODO_UPDATE_TEXT: function(action) {
+    var text = action.text.trim();
+    if (text !== '') {
+      TodoStore.get(action.id).set({text: text});
+    }
+  },
+
+  TODO_DESTROY: function(action) {
+    TodoStore.remove({id: action.id});
+  },
+
+  TODO_DESTROY_COMPLETED: function(action) {
+    TodoStore.remove(TodoStore.where({complete: true}));
   }
 });
+
 
 module.exports = TodoStore;
