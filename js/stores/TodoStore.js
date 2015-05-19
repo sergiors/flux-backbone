@@ -23,7 +23,7 @@ var TodoStore = _.extend(Todos, {
    * @return {boolean}
    */
   areAllComplete: function() {
-    return Todos.where({complete: true}).length || false;
+    return this.where({complete: true}).length || false;
   },
 
   /**
@@ -31,7 +31,7 @@ var TodoStore = _.extend(Todos, {
    * @return {object}
    */
   getAll: function() {
-    return Todos.toJSON();
+    return this.toJSON();
   },
 
   updateAll: function(updates) {
@@ -60,10 +60,8 @@ AppDispatcher.on({
     var text = action.text.trim();
 
     if (text !== '') {
-      var id = (+new Date() + Math.floor(Math.random() * 999999)).toString(36);
-
       TodoStore.add({
-        id: id,
+        id: _.uniqueId(),
         complete: false,
         text: text
       });

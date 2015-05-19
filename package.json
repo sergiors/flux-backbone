@@ -1,51 +1,38 @@
 {
-  "name": "flux",
-  "version": "2.0.3",
-  "description": "An application architecture based on a unidirectional data flow",
-  "keywords": [
-    "flux",
-    "react",
-    "facebook",
-    "dispatcher"
-  ],
-  "homepage": "http://facebook.github.io/flux/",
-  "bugs": "https://github.com/facebook/flux/issues",
-  "files": [
-    "index.js",
-    "lib/",
-    "LICENSE",
-    "PATENTS"
-  ],
-  "main": "index.js",
+  "name": "todomvc-flux",
+  "version": "0.0.3",
+  "description": "Example Flux architecture.",
+  "repository": "https://github.com/facebook/flux",
+  "main": "js/app.js",
+  "dependencies": {
+    "backbone": "^1.2.0",
+    "flux": "^2.0.1",
+    "jquery": "^2.1.4",
+    "keymirror": "~0.1.0",
+    "lodash": "^3.8.0",
+    "object-assign": "^1.0.0",
+    "react": "^0.12.0"
+  },
+  "devDependencies": {
+    "browserify": "^6.2.0",
+    "envify": "^3.0.0",
+    "jest-cli": "^0.4.3",
+    "reactify": "^0.15.2",
+    "uglify-js": "~2.4.15",
+    "watchify": "^2.1.1"
+  },
   "scripts": {
-    "prepublish": "gulp publish",
-    "test": "jest"
+    "start": "watchify -o js/bundle.js -v -d js/app.js",
+    "build": "browserify . -t [envify --NODE_ENV production] | uglifyjs -cm > js/bundle.min.js"
+  },
+  "author": "Bill Fisher",
+  "browserify": {
+    "transform": [
+      "reactify",
+      "envify"
+    ]
   },
   "jest": {
-    "rootDir": "src",
-    "scriptPreprocessor": "../jest-preprocessor.js"
-  },
-  "repository": {
-    "type": "git",
-    "url": "https://github.com/facebook/flux"
-  },
-  "author": "Facebook",
-  "contributors": [
-    "Jing Chen <jingc@fb.com>",
-    "Bill Fisher <fisherwebdev@gmail.com>",
-    "Paul O'Shannessy <paul@oshanessy.com>"
-  ],
-  "license": "BSD-3-Clause",
-  "devDependencies": {
-    "browserify": "^9.0.3",
-    "del": "^1.1.1",
-    "gulp": "^3.8.11",
-    "gulp-clean": "^0.3.1",
-    "gulp-react": "^2.0.0",
-    "gulp-replace": "^0.5.3",
-    "jest-cli": "^0.4.3",
-    "react-tools": "^0.12.0",
-    "run-sequence": "^1.0.2",
-    "vinyl-source-stream": "^1.0.0"
+    "rootDir": "./js"
   }
 }
